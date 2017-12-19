@@ -13,92 +13,39 @@ namespace test {
 } // namespace
 
 // scans the whole image for clusters and stores them in the coords vector
-void findClusters(std::vector<Coord> &coords, int *pixels, double density, int scanSize, int checkSize, int width, int height) {
+void findClusters(std::vector<Coord> &coords, int *pixels, double tolerance, int width, int height) {
 	Coord c;
-	int dx;
-	int dy;
 	int v;
 	int sum = 0;
-	int mean;
+	int pixelCount = width * height;
 	int count = 0;
-	int scanPixelCount = scanSize * scanSize;
-	int threshold = scanPixelCount * density; // 0.4
-	bool flag = false; // means ignore this cluster
-	int pixelsScanned = 0;
+	int scanSize = width / 100;
 
-	sum = 0;
-	int pixelCount = sizeof(pixels) / sizeof(*pixels);
 	for (int i = 0; i < pixelCount; i++) {
-		sum += pixels[i];
+		if (pixels[i] > 0) {
+			count += 1;
+			sum += pixels[i];
+		}
 	}
 
-	int colourThreshold = sum / pixelCount; // the average pixel intensity
+	int threshold = (sum / count) * (1 / (1 / tolerance)); 
 
-	// for every vertical scan region
-	for (int y = 0; y < height - scanSize / 2; y += scanSize / 2) {
-
-		// for every horizontal scan region
-		for (int x = 0; x < width - scanSize / 2; x += scanSize / 2) {
-			flag = true;
-
-			if (x < width - scanSize && y < height - scanSize) {
-				count = 0;
-				sum = 0;
-				for (int j = y; j < y + scanSize; j++) {
-					for (int i = x; i < x + scanSize; i++) {
-						v = pixels[(j * width) + i];
-						if (v > colourThreshold) { // 50
-							count += 1; // count neighbouring pixels
-							sum += v;
-						}
-					}
+	for (int y = 0; y < height - scanSize; y += scanSize) {
+		for (int x = 0; x < width - scanSize; x += scanSize) {
+			sum = 0;
+			count = 0;
+			for (int j = y; j < y + scanSize; j++) {
+				for (int k = x; k < x + scanSize; k++) {
+					v = pixels[(j * width) + k];
+					sum += v;
+					count += 1;
 				}
-
-				// if cell count is over threshold and average pixel intensity is greater than the colour threshold
-				if (count > threshold) {// && sum / count > colourThreshold) { 
-					flag = false;
-				}
-
-				bool sameCluster = false;
-
-				if (!flag) {
-
-					// check around this point for other prviously marked points
-					for (int i = 0; i < coords.size(); i++) {
-						dy = abs(y - coords[i].y);
-						dx = abs(x - coords[i].x);
-						int dist = sqrt((dx * dx) + (dy * dy));
-
-						if (dist < checkSize) {
-							sameCluster = true;
-							continue;
-						}
-
-						// if the distance is large then we can just ignore this cluster
-						if (dist > checkSize) {
-							continue;
-						}
-
-						// scan pixels around this cluster to see if they have already been stored
-						for (int j = y - checkSize; j < y + checkSize; j++) {
-
-							for (int k = x - checkSize; k < x + checkSize; k++) {
-
-								if (k == coords[i].x && j == coords[i].y) {
-									sameCluster = true;
-								}
-							}
-						}
-					}
-
-					if (!sameCluster) {
-						c.x = x;
-						c.y = y;
-						c.value = sum / count; // average intensity
-						coords.push_back(c);
-						flag = true;
-					}
-				}
+			}
+			if (count > 0 && sum / count > threshold) {
+				c.x = x;
+				c.y = y;
+				c.value = v; // average intensity
+				coords.push_back(c);
 			}
 		}
 	}
@@ -130,13 +77,12 @@ int main() {
 	std::vector<Coord> clusters;
 	int *pixels = new int[imageWidth * imageHeight];
 	bool processed = false;
-	int scanSize = imageWidth / 80;
-	int checkSize = scanSize * 4;
+	int scanCount = 100;
+	int scanSize = imageWidth / 100;
+	//int checkSize = 0;
 
-	sf::RectangleShape cluster(sf::Vector2f(scanSize, scanSize));
-	cluster.setOutlineColor(sf::Color::Red);
-	cluster.setOutlineThickness(2);
-	cluster.setFillColor(sf::Color::Transparent);
+	sf::RectangleShape cluster(sf::Vector2f(scanSize - 1, scanSize - 1));
+	cluster.setFillColor(sf::Color::Red);
 
 	sf::RectangleShape pixel(sf::Vector2f(1, 1));
 
@@ -151,8 +97,6 @@ int main() {
 		}
 
 		window.clear(sf::Color::White);
-
-		if (!processed) {
 			int i = 0;
 
 			for (int y = 0; y < imageHeight; y++) {
@@ -161,7 +105,6 @@ int main() {
 					i += 1;
 				}
 			}
-		}
 
 		for (int y = 0; y < imageHeight; y++) {
 
@@ -177,7 +120,7 @@ int main() {
 		}
 
 		if (!processed) {
-			findClusters(clusters, pixels, 0.5, scanSize, checkSize, imageWidth, imageHeight);
+			findClusters(clusters, pixels, 0.85, imageWidth, imageHeight);
 			std::cout << "Found " << clusters.size() << " clusters." << std::endl;
 			processed = true;
 		}
@@ -187,9 +130,9 @@ int main() {
 			int y = clusters[i].y * (imageHeight / windowHeight);
 			cluster.setPosition(sf::Vector2f(x, y));
 			window.draw(cluster);
-			text.setString(std::to_string(clusters[i].value));
-			text.setPosition(x, y);
-			window.draw(text);
+			//text.setString(std::to_string(clusters[i].value));
+			//text.setPosition(x, y);
+			//window.draw(text);
 		}
 
 		window.display();
