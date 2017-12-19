@@ -99,33 +99,37 @@ void findClusters(std::vector<Coord> &coords, int *pixels, int scanSize, int wid
 
 int main() {
 	sf::Image image;
+	sf::Font font;
 
 	if (!image.loadFromFile("test.png")) {
+		return -1;
+	}
+
+	if (!font.loadFromFile("font.ttf")) {
 		return -1;
 	}
 	
 	const int imageWidth = image.getSize().x;
 	const int imageHeight = image.getSize().y;
+
 	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
 	window.setFramerateLimit(30);
-	sf::Font font;
+
 	sf::Text text;
-
-	if (!font.loadFromFile("font.ttf")) {
-		return -1;
-	}
-
 	text.setFont(font);
 	text.setFillColor(sf::Color::Black);
 	text.setCharacterSize(40);
+
 	std::vector<Coord> clusters;
 	int *pixels = new int[imageWidth * imageHeight];
 	bool processed = false;
 	int scanSize = imageWidth / 50;
+
 	sf::RectangleShape cluster(sf::Vector2f(scanSize, scanSize));
 	cluster.setOutlineColor(sf::Color::Red);
 	cluster.setOutlineThickness(2);
 	cluster.setFillColor(sf::Color::Transparent);
+
 	sf::RectangleShape pixel(sf::Vector2f(1, 1));
 
 	while (window.isOpen()) {
