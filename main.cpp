@@ -8,6 +8,10 @@ struct Coord {
 	int value;
 };
 
+namespace test {
+
+} // namespace
+
 // scans the whole image for clusters and stores them in the coords vector
 void findClusters(std::vector<Coord> &coords, int *pixels, int scanSize, int width, int height) {
 	Coord c;
