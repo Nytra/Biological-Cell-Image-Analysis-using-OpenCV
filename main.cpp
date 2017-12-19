@@ -13,7 +13,7 @@ namespace test {
 } // namespace
 
 // scans the whole image for clusters and stores them in the coords vector
-void findClusters(std::vector<Coord> &coords, int *pixels, int scanSize, int width, int height) {
+void findClusters(std::vector<Coord> &coords, int *pixels, double density, int scanSize, int checkSize, int width, int height) {
 	Coord c;
 	int dx;
 	int dy;
@@ -22,10 +22,17 @@ void findClusters(std::vector<Coord> &coords, int *pixels, int scanSize, int wid
 	int mean;
 	int count = 0;
 	int scanPixelCount = scanSize * scanSize;
-	int threshold = scanSize * 0.8; // 0.4
+	int threshold = scanPixelCount * density; // 0.4
 	bool flag = false; // means ignore this cluster
 	int pixelsScanned = 0;
-	int colourThreshold = 40;
+
+	sum = 0;
+	int pixelCount = sizeof(pixels) / sizeof(*pixels);
+	for (int i = 0; i < pixelCount; i++) {
+		sum += pixels[i];
+	}
+
+	int colourThreshold = sum / pixelCount; // the average pixel intensity
 
 	// for every vertical scan region
 	for (int y = 0; y < height - scanSize / 2; y += scanSize / 2) {
@@ -47,12 +54,12 @@ void findClusters(std::vector<Coord> &coords, int *pixels, int scanSize, int wid
 					}
 				}
 
-				if (count > 0 && sum / count > colourThreshold && count > threshold) { // if cell count is over threshold then remove the ignore flag
+				// if cell count is over threshold and average pixel intensity is greater than the colour threshold
+				if (count > threshold) {// && sum / count > colourThreshold) { 
 					flag = false;
 				}
 
 				bool sameCluster = false;
-				int checkSize = scanSize * 2; // make this vary depending on the size of the cell
 
 				if (!flag) {
 
@@ -123,7 +130,8 @@ int main() {
 	std::vector<Coord> clusters;
 	int *pixels = new int[imageWidth * imageHeight];
 	bool processed = false;
-	int scanSize = imageWidth / 50;
+	int scanSize = imageWidth / 80;
+	int checkSize = scanSize * 4;
 
 	sf::RectangleShape cluster(sf::Vector2f(scanSize, scanSize));
 	cluster.setOutlineColor(sf::Color::Red);
@@ -169,7 +177,7 @@ int main() {
 		}
 
 		if (!processed) {
-			findClusters(clusters, pixels, scanSize, imageWidth, imageHeight);
+			findClusters(clusters, pixels, 0.5, scanSize, checkSize, imageWidth, imageHeight);
 			std::cout << "Found " << clusters.size() << " clusters." << std::endl;
 			processed = true;
 		}
