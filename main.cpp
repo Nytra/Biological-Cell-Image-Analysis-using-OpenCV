@@ -83,6 +83,7 @@ int main() {
 	if (!image.loadFromFile("test.png")) {
 		return -1;
 	}
+	std::cout << "Image loaded." << std::endl;
 
 	if (!font.loadFromFile("font.ttf")) {
 		return -1;
@@ -90,6 +91,9 @@ int main() {
 	
 	const int imageWidth = image.getSize().x;
 	const int imageHeight = image.getSize().y;
+
+	std::cout << "Width: " << imageWidth << std::endl;
+	std::cout << "Height: " << imageHeight << std::endl;
 
 	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
 	window.setFramerateLimit(30);
@@ -162,6 +166,8 @@ int main() {
 
 			// use a while loop to make a recursive path finder which keeps going until there is nowhere else to go
 			for (int i = 0; i < coords.size(); i++) {
+
+				break;
 
 				for (int j = 0; j < coords.size(); j++) {
 
