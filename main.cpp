@@ -15,7 +15,7 @@ public:
 		_coords = coords;
 	}
 
-	Cluster() { }
+	Cluster() {}
 	
 	void addCoord(Coord c) {
 		_coords.push_back(c);
@@ -23,6 +23,10 @@ public:
 
 	std::vector<Coord> getCoords() {
 		return _coords;
+	}
+
+	void clear() {
+		_coords.clear();
 	}
 };
 
@@ -105,6 +109,8 @@ int main() {
 
 	sf::RectangleShape pixel(sf::Vector2f(1, 1));
 
+	std::vector<Coord> coords;
+
 	while (window.isOpen()) {
 
 		sf::Event event;
@@ -139,45 +145,48 @@ int main() {
 			}
 		}
 
-		std::vector<Coord> coords;
-		coords = findClusters(pixels, tolerance, imageWidth, imageHeight);
-		std::cout << "Found " << coords.size() << " coords." << std::endl;
-
-		// start cluster logic
 		
-		std::vector<Cluster> clusters;
-		for (int i = 0; i < coords.size(); i++) {
-			Cluster c;
-			c.addCoord(coords[i]);
-			for (int j = 0; j < coords.size(); j++) {
-				if (coords[j].x == coords[i].x + scanSize || coords[j].x == coords[i].x - scanSize) {
-					c.addCoord(coords[j]);
-				}
-				if (coords[j].y == coords[i].y + scanSize || coords[j].y == coords[i].y - scanSize) {
-					c.addCoord(coords[j]);
-				}
-			}
-			if (c.getCoords().size() > 1) {
-				clusters.push_back(c);
-			}
-		}
+		if (!processed) {
+			
+			processed = true;
+			coords = findClusters(pixels, tolerance, imageWidth, imageHeight);
+			std::cout << "Found " << coords.size() << " coords." << std::endl;
 
-		std::cout << "Found " << clusters.size() << " clusters." << std::endl;
+			// start cluster logic
+
+			int count = 0;
+			for (int i = 1; i < coords.size() - 1; i += scanSize) {
+
+				if (coords[i].x == coords[i + 1].x + scanSize || coords[i].x == coords[i + 1].x - scanSize) {
+					count += 1;
+				}
+				else if (coords[i].x == coords[i - 1].x + scanSize || coords[i].x == coords[i - 1].x - scanSize) {
+					count += 1;
+				}
+				else if (coords[i].y == coords[i + 1].y + scanSize || coords[i].y == coords[i + 1].y - scanSize) {
+					count += 1;
+				}
+				else if (coords[i].y == coords[i - 1].y + scanSize || coords[i].y == coords[i - 1].y - scanSize) {
+					count += 1;
+				}
+			}
+
+			std::cout << "Found " << count << " clusters." << std::endl;
+		}
 
 		// end cluster logic
 
 		for (int i = 0; i < coords.size(); i++) {
-			for (int j = 0; j < coords.size(); j++) {
-				int x = coords[i].x * (imageWidth / windowWidth);
-				int y = coords[i].y * (imageHeight / windowHeight);
-				cluster.setPosition(sf::Vector2f(x, y));
-				window.draw(cluster);
-			}
+			int x = coords[i].x * (imageWidth / windowWidth);
+			int y = coords[i].y * (imageHeight / windowHeight);
+			cluster.setPosition(sf::Vector2f(x, y));
+			window.draw(cluster);
+		}
 			
 			//text.setString(std::to_string(clusters[i].value));
 			//text.setPosition(x, y);
 			//window.draw(text);
-		}
+		
 
 		window.display();
 	}
