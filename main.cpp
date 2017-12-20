@@ -87,25 +87,25 @@ int main() {
 
 	TIFF* tif = TIFFOpen("test.tif", "r");
 	if (tif) {
-		tsize_t scanline;
-		tdata_t buf;
-		uint32 row;
-		uint32 col;
-		uint8* data;
-
-		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imageHeight);
-		scanline = TIFFScanlineSize(tif);
-		imageWidth = scanline;
-		buf = _TIFFmalloc(scanline);
-		for (row = 0; row < imageHeight; row++) {
-			TIFFReadScanline(tif, buf, row);
-			for (col = 0; col < scanline; col++) {
-				data = (uint8*)buf;
-				newPixels.push_back(data[col]);
+		uint32 w, h;
+		size_t npixels;
+		uint32* raster;
+		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
+		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
+		npixels = w * h;
+		raster = (uint32*)_TIFFmalloc(npixels * sizeof(uint32));
+		if (raster != NULL) {
+			if (TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+				for (int i = 0; i < npixels; i++) {
+					int b = (int)TIFFGetB((uint32)raster[i]);
+					newPixels.push_back(b);
+				}
 			}
+			_TIFFfree(raster);
 		}
-		_TIFFfree(buf);
 		TIFFClose(tif);
+		imageHeight = h;
+		imageWidth = w;
 	}
 
 	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
@@ -130,7 +130,7 @@ int main() {
 		for (int y = 0; y < imageHeight; y++) {
 			for (int x = 0; x < imageWidth; x++) {
 				int value = newPixels[(y * imageWidth) + x];
-				if (value > -1) {
+				if (value > 0) {
 					pixel.setFillColor(sf::Color(0, 0, value));
 					pixel.setPosition(x, y);
 					window.draw(pixel);
