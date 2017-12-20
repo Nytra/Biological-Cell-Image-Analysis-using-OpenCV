@@ -27,8 +27,7 @@ public:
 };
 
 // scans the whole image for clusters and stores them in the coords vector
-std::vector<Cluster> findClusters(int *pixels, double tolerance, int width, int height) {
-	Coord c;
+std::vector<Coord> findClusters(int *pixels, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
 	int v, cx, cy;
 	int sum = 0;
@@ -44,7 +43,7 @@ std::vector<Cluster> findClusters(int *pixels, double tolerance, int width, int 
 		}
 	}
 
-	int threshold = (sum / count) * (1 / (1 / tolerance)); 
+	int threshold = (sum / count) * tolerance;  // average pixel value multiplied by the inverse of the tolerance
 
 	for (int y = 0; y < height - scanSize; y += scanSize) {
 
@@ -62,56 +61,15 @@ std::vector<Cluster> findClusters(int *pixels, double tolerance, int width, int 
 			}
 
 			if (count > 0 && sum / count > threshold) {
-
-				c.x = x;
-				c.y = y;
-				coords.push_back(c);
+				Coord coord;
+				coord.x = x;
+				coord.y = y;
+				coords.push_back(coord);
 			}
 		}
 	}
 
-	int x, y;
-	std::vector<Cluster> clusters;
-	Cluster cl;
-	Coord co;
-	bool flag;
-	for (int i = 0; i < coords.size(); i++) {
-		x = coords[i].x;
-		y = coords[i].y;
-		flag = false;
-		for (int j = 0; j < coords.size(); j++) {
-			
-			if (coords[j].x == x + scanSize) {
-				c.x = x + scanSize;
-				c.y = y;
-				cl.addCoord(c);
-				flag = true;
-			}
-			if (coords[j].x == x - scanSize) {
-				c.x = x - scanSize;
-				c.y = y;
-				cl.addCoord(c);
-				flag = true;
-			}
-			if (coords[j].y == y + scanSize) {
-				c.x = x;
-				c.y = y = scanSize;
-				cl.addCoord(c);
-				flag = true;
-			}
-			if (coords[j].y == y - scanSize) {
-				c.x = x;
-				c.y = y - scanSize;
-				cl.addCoord(c);
-				flag = true;
-			}
-		}
-		if (flag) {
-			clusters.push_back(cl);
-		}
-	}
-
-	return clusters;
+	return coords;
 }
 
 int main() {
@@ -137,12 +95,10 @@ int main() {
 	text.setFillColor(sf::Color::Black);
 	text.setCharacterSize(40);
 
-	std::vector<Cluster> clusters;
 	int *pixels = new int[imageWidth * imageHeight];
 	bool processed = false;
 	int scanCount = 100;
 	int scanSize = 10;
-	//int checkSize = 0;
 
 	sf::RectangleShape cluster(sf::Vector2f(scanSize - 1, scanSize - 1));
 	cluster.setFillColor(sf::Color::Red);
@@ -183,16 +139,37 @@ int main() {
 			}
 		}
 
-		if (!processed) {
-			clusters = findClusters(pixels, 0.85, imageWidth, imageHeight);
-			std::cout << "Found " << clusters.size() << " clusters." << std::endl;
-			processed = true;
+		std::vector<Coord> coords;
+		coords = findClusters(pixels, tolerance, imageWidth, imageHeight);
+		std::cout << "Found " << coords.size() << " coords." << std::endl;
+
+		// start cluster logic
+		
+		std::vector<Cluster> clusters;
+		for (int i = 0; i < coords.size(); i++) {
+			Cluster c;
+			c.addCoord(coords[i]);
+			for (int j = 0; j < coords.size(); j++) {
+				if (coords[j].x == coords[i].x + scanSize || coords[j].x == coords[i].x - scanSize) {
+					c.addCoord(coords[j]);
+				}
+				if (coords[j].y == coords[i].y + scanSize || coords[j].y == coords[i].y - scanSize) {
+					c.addCoord(coords[j]);
+				}
+			}
+			if (c.getCoords().size() > 1) {
+				clusters.push_back(c);
+			}
 		}
 
-		for (int i = 0; i < clusters.size(); i++) {
-			for (int j = 0; j < clusters[i].getCoords().size(); j++) {
-				int x = clusters[i].getCoords()[0].x * (imageWidth / windowWidth);
-				int y = clusters[i].getCoords()[0].y * (imageHeight / windowHeight);
+		std::cout << "Found " << clusters.size() << " clusters." << std::endl;
+
+		// end cluster logic
+
+		for (int i = 0; i < coords.size(); i++) {
+			for (int j = 0; j < coords.size(); j++) {
+				int x = coords[i].x * (imageWidth / windowWidth);
+				int y = coords[i].y * (imageHeight / windowHeight);
 				cluster.setPosition(sf::Vector2f(x, y));
 				window.draw(cluster);
 			}
