@@ -154,20 +154,92 @@ int main() {
 
 			// start cluster logic
 
+			std::vector<Coord> checked;
+			Coord c;
 			int count = 0;
-			for (int i = 1; i < coords.size() - 1; i += scanSize) {
+			for (int i = 0; i < coords.size(); i++) {
 
-				if (coords[i].x == coords[i + 1].x + scanSize || coords[i].x == coords[i + 1].x - scanSize) {
-					count += 1;
-				}
-				else if (coords[i].x == coords[i - 1].x + scanSize || coords[i].x == coords[i - 1].x - scanSize) {
-					count += 1;
-				}
-				else if (coords[i].y == coords[i + 1].y + scanSize || coords[i].y == coords[i + 1].y - scanSize) {
-					count += 1;
-				}
-				else if (coords[i].y == coords[i - 1].y + scanSize || coords[i].y == coords[i - 1].y - scanSize) {
-					count += 1;
+				for (int j = 0; j < coords.size(); j++) {
+
+					if (i == j) {
+						continue;
+					}
+
+					bool found = false;
+					for (int k = 0; k < checked.size(); k++) {
+						if (checked[k].x == coords[i].x || checked[k].y == coords[i].y) {
+							found = true;
+						}
+						if (checked[k].x == coords[j].x || checked[k].y == coords[j].y) {
+							found = true;
+						}
+					}
+
+					if (found) {
+						continue;
+					}
+
+					// right left
+					if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y) { // right
+						count += 1;
+						c.x = coords[j].x + scanSize;
+						c.y = coords[j].y;
+						checked.push_back(c);
+						continue;
+					}
+					if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y) { // left
+						count += 1;
+						c.x = coords[j].x - scanSize;
+						c.y = coords[j].y;
+						checked.push_back(c);
+						continue;
+					}
+
+					// up down
+					if (coords[i].x == coords[j].x && coords[i].y == coords[j].y + scanSize) { // down
+						count += 1;
+						c.x = coords[j].x;
+						c.y = coords[j].y + scanSize;
+						checked.push_back(c);
+						continue;
+					}
+					if (coords[i].x == coords[j].x && coords[i].y == coords[j].y - scanSize) { // up
+						count += 1;
+						c.x = coords[j].x;
+						c.y = coords[j].y - scanSize;
+						checked.push_back(c);
+						continue;
+					}
+
+					// diagonals
+					if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y + scanSize) { // bottom right
+						count += 1;
+						c.x = coords[j].x + scanSize;
+						c.y = coords[j].y + scanSize;
+						checked.push_back(c);
+						continue;
+					}
+					if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y - scanSize) { // top right
+						count += 1;
+						c.x = coords[j].x + scanSize;
+						c.y = coords[j].y - scanSize;
+						checked.push_back(c);
+						continue;
+					}
+					if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y + scanSize) { // bottom left
+						count += 1;
+						c.x = coords[j].x - scanSize;
+						c.y = coords[j].y + scanSize;
+						checked.push_back(c);
+						continue;
+					}
+					if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y - scanSize) { // top left
+						count += 1;
+						c.x = coords[j].x - scanSize;
+						c.y = coords[j].y - scanSize;
+						checked.push_back(c);
+						continue;
+					}
 				}
 			}
 
