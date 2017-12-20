@@ -111,6 +111,8 @@ int main() {
 
 	std::vector<Coord> coords;
 
+	
+
 	while (window.isOpen()) {
 
 		sf::Event event;
@@ -157,6 +159,8 @@ int main() {
 			std::vector<Coord> checked;
 			Coord c;
 			int count = 0;
+
+			// use a while loop to make a recursive path finder which keeps going until there is nowhere else to go
 			for (int i = 0; i < coords.size(); i++) {
 
 				for (int j = 0; j < coords.size(); j++) {
@@ -244,6 +248,8 @@ int main() {
 			}
 
 			std::cout << "Found " << count << " clusters." << std::endl;
+
+			
 		}
 
 		// end cluster logic
@@ -254,13 +260,14 @@ int main() {
 			cluster.setPosition(sf::Vector2f(x, y));
 			window.draw(cluster);
 		}
-			
-			//text.setString(std::to_string(clusters[i].value));
-			//text.setPosition(x, y);
-			//window.draw(text);
-		
+
+		//text.setString(std::to_string(clusters[i].value));
+		//text.setPosition(x, y);
+		//window.draw(text);
+
 
 		window.display();
+		
 	}
 
 	return 0;
