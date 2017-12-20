@@ -97,7 +97,7 @@ int main() {
 		if (raster != NULL) {
 			if (TIFFReadRGBAImage(tif, w, h, raster, 0)) {
 				for (int i = 0; i < npixels; i++) {
-					int b = (int)TIFFGetB((uint32)raster[i]);
+					int b = TIFFGetB(raster[i]);
 					newPixels.push_back(b);
 				}
 			}
