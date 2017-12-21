@@ -82,30 +82,37 @@ int main() {
 	sf::Font font;
 	uint32 imageHeight;
 	uint32 imageWidth;
-	std::vector<int> newPixels;
 	std::vector<Coord> coords;
+
+	std::vector<int> red;
+	std::vector<int> green;
+	std::vector<int> blue;
 
 	TIFF* tif = TIFFOpen("test.tif", "r");
 	if (tif) {
-		uint32 w, h;
+		uint32 width, height;
 		size_t npixels;
 		uint32* raster;
-		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
-		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
-		npixels = w * h;
+		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+		npixels = width * height;
 		raster = (uint32*)_TIFFmalloc(npixels * sizeof(uint32));
 		if (raster != NULL) {
-			if (TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+			if (TIFFReadRGBAImage(tif, width, height, raster, 0)) {
 				for (int i = 0; i < npixels; i++) {
+					int r = TIFFGetR(raster[i]);
+					int g = TIFFGetG(raster[i]);
 					int b = TIFFGetB(raster[i]);
-					newPixels.push_back(b);
+					red.push_back(r);
+					green.push_back(g);
+					blue.push_back(b);
 				}
 			}
 			_TIFFfree(raster);
 		}
 		TIFFClose(tif);
-		imageHeight = h;
-		imageWidth = w;
+		imageWidth = width;
+		imageHeight = height;
 	}
 
 	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
@@ -129,7 +136,7 @@ int main() {
 
 		for (int y = 0; y < imageHeight; y++) {
 			for (int x = 0; x < imageWidth; x++) {
-				int value = newPixels[(y * imageWidth) + x];
+				int value = blue[(y * imageWidth) + x];
 				if (value > 0) {
 					pixel.setFillColor(sf::Color(0, 0, value));
 					pixel.setPosition(x, y);
@@ -140,7 +147,7 @@ int main() {
 		
 		if (!processed) {
 			processed = true;
-			coords = findClusters(newPixels, tolerance, imageWidth, imageHeight);
+			coords = findClusters(blue, tolerance, imageWidth, imageHeight);
 			std::cout << "Found " << coords.size() << " coords." << std::endl;
 		}
 
