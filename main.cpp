@@ -39,7 +39,7 @@ std::vector<Coord> findClusters(std::vector<int> pixels, double tolerance, int w
 	int sum = 0;
 	int pixelCount = width * height;
 	int count = 0;
-	int scanSize = width / 100;
+	int scanSize = 5;
 
 	for (int i = 0; i < pixelCount; i++) {
 
@@ -110,7 +110,7 @@ int main() {
 
 	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
 	sf::RectangleShape pixel(sf::Vector2f(1, 1));
-	sf::RectangleShape cluster(sf::Vector2f(10, 10));
+	sf::RectangleShape cluster(sf::Vector2f(2, 2));
 	cluster.setFillColor(sf::Color::Red);
 	window.setFramerateLimit(30);
 	bool processed = false;
