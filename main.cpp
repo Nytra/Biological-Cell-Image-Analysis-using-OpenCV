@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 #include <SFML\Graphics.hpp>
 #include <Windows.h>
 #include "constants.h"
@@ -31,6 +32,40 @@ public:
 		_coords.clear();
 	}
 };
+
+std::string getexepath() {
+	char result[MAX_PATH];
+	GetModuleFileName(NULL, result, MAX_PATH);
+	std::string::size_type pos = std::string(result).find_last_of("\\/");
+	return std::string(result).substr(0, pos);
+}
+
+std::string convertLSMToTIFF(std::string filename) {
+	std::string oname = filename + ".tif";
+	std::string path = getexepath();
+	std::string command = path + "\\imgcnv.exe -i " + filename + " -o " + oname + " -t TIFF -display -flip";
+	system(command.c_str());
+	return oname;
+}
+
+std::vector<std::string> get_all_files_names_within_folder(std::string folder)
+{
+	std::vector<std::string> names;
+	std::string search_path = folder + "\\*.lsm";
+	WIN32_FIND_DATA fd;
+	HANDLE hFind = FindFirstFile(search_path.c_str(), &fd);
+	if (hFind != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			//if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+			names.push_back(fd.cFileName);
+			//}
+		} while (FindNextFile(hFind, &fd));
+		FindClose(hFind);
+	}
+	return names;
+}
 
 // scans the whole image for clusters and stores them in the coords vector
 std::vector<Coord> findClusters(std::vector<int> pixels, double tolerance, int width, int height) {
@@ -89,7 +124,20 @@ int main() {
 	std::vector<int> green;
 	std::vector<int> blue;
 
-	TIFF* tif = TIFFOpen("test.tif", "r");
+	std::string path;
+	std::vector<std::string> names;
+
+	std::cout << "Path to source directory: ";
+	std::cin >> path;
+	names = get_all_files_names_within_folder(path);
+	for (int i = 0; i < names.size(); i++) {
+		std::cout << names[i] << std::endl;
+	}
+	system("pause");
+
+	std::string iname = "test.lsm";
+
+	TIFF* tif = TIFFOpen(convertLSMToTIFF(iname).c_str(), "r");
 	if (tif) {
 		//uint32 width, height;
 		size_t npixels;
