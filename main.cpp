@@ -33,6 +33,50 @@ public:
 	}
 };
 
+class Image {
+private:
+	uint32 _height;
+	uint32 _width;
+	std::vector<int> _red;
+	std::vector<int> _green;
+	std::vector<int> _blue;
+public:
+	void setDimensions(uint32 width, uint32 height) {
+		_width = width;
+		_height = height;
+	}
+	void setRed(std::vector<int> red) {
+		_red = red;
+	}
+	void setGreen(std::vector<int> green) {
+		_green = green;
+	}
+	void setBlue(std::vector<int> blue) {
+		_blue = blue;
+	}
+	uint32 getHeight() {
+		return _height;
+	}
+	uint32 getWidth() {
+		return _width;
+	}
+	std::vector<int> getRed() {
+		return _red;
+	}
+	std::vector<int> getGreen() {
+		return _green;
+	}
+	std::vector<int> getBlue() {
+		return _blue;
+	}
+};
+
+inline bool ends_with(std::string const & value, std::string const & ending)
+{
+	if (ending.size() > value.size()) return false;
+	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 std::string getexepath() {
 	char result[MAX_PATH];
 	GetModuleFileName(NULL, result, MAX_PATH);
@@ -43,7 +87,7 @@ std::string getexepath() {
 std::string convertLSMToTIFF(std::string filename) {
 	std::string oname = filename + ".tif";
 	std::string path = getexepath();
-	std::string command = path + "\\imgcnv.exe -i " + filename + " -o " + oname + " -t TIFF -display -flip";
+	std::string command = path + "\\imgcnv.exe -i \"" + filename + "\" -o \"" + oname + "\" -t TIFF -display";
 	system(command.c_str());
 	return oname;
 }
@@ -72,8 +116,8 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 			//if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
 			//std::cout << fd.cFileName << std::endl;
 			std::string name(fd.cFileName);
-			if (std::size_t(name.find(std::string(".lsm")) != std::string::npos)) {
-				names.push_back(fd.cFileName);
+			if (ends_with(name, ".lsm")) {
+				names.push_back(newPath + "\\" + fd.cFileName);
 			}
 			
 			//}
@@ -84,13 +128,12 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 }
 
 // scans the whole image for clusters and stores them in the coords vector
-std::vector<Coord> findClusters(std::vector<int> pixels, double tolerance, int width, int height) {
+std::vector<Coord> findClusters(std::vector<int> pixels, int scanSize, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
-	int v, cx, cy;
+	int v;
 	int sum = 0;
 	int pixelCount = width * height;
 	int count = 0;
-	int scanSize = 10;
 
 	for (int i = 0; i < pixelCount; i++) {
 
@@ -129,41 +172,26 @@ std::vector<Coord> findClusters(std::vector<int> pixels, double tolerance, int w
 	return coords;
 }
 
-int main() {
-	sf::Font font;
-	uint32 imageHeight;
-	uint32 imageWidth;
-
-	std::vector<Coord> coords;
-
+Image getImage(std::string path) {
+	Image img;
 	std::vector<int> red;
 	std::vector<int> green;
 	std::vector<int> blue;
+	TIFF* tif = TIFFOpen(convertLSMToTIFF(path).c_str(), "r");
 
-	std::string path;
-	std::vector<std::string> names;
-
-	std::cout << "Path to source directory: ";
-	std::getline(std::cin, path);
-	names = get_all_files_names_within_folder(path);
-	for (int i = 0; i < names.size(); i++) {
-		std::cout << names[i] << std::endl;
-	}
-	system("pause");
-
-	std::string iname = "test.lsm";
-
-	TIFF* tif = TIFFOpen(convertLSMToTIFF(iname).c_str(), "r");
 	if (tif) {
-		//uint32 width, height;
+		uint32 width, height;
 		size_t npixels;
 		uint32* raster;
-		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &imageWidth);
-		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imageHeight);
-		npixels = imageWidth * imageHeight;
+		TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+		TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+		npixels = width * height;
 		raster = (uint32*)_TIFFmalloc(npixels * sizeof(uint32));
+
 		if (raster != NULL) {
-			if (TIFFReadRGBAImage(tif, imageWidth, imageHeight, raster, 0)) {
+
+			if (TIFFReadRGBAImage(tif, width, height, raster, 0)) {
+
 				for (int i = 0; i < npixels; i++) {
 					int r = TIFFGetR(raster[i]);
 					int g = TIFFGetG(raster[i]);
@@ -173,21 +201,44 @@ int main() {
 					blue.push_back(b);
 				}
 			}
+
 			_TIFFfree(raster);
 		}
+
 		TIFFClose(tif);
+		img.setRed(red);
+		img.setGreen(green);
+		img.setBlue(blue);
+		img.setDimensions(width, height);
 	}
 
-	sf::RenderWindow window(sf::VideoMode(imageWidth, imageHeight), "Application");
+	return img;
+}
+
+int main() {
+	std::vector<Coord> coords;
+	std::string path;
+	std::vector<std::string> names;
+
+	std::cout << "Path to source directory: ";
+	std::getline(std::cin, path);
+	names = get_all_files_names_within_folder(path);
+	std::cout << "Images to Process: " << names.size() << std::endl;
+
+	sf::RenderWindow window(sf::VideoMode(1, 1), "Application");
 	sf::RectangleShape pixel(sf::Vector2f(1, 1));
-	sf::RectangleShape cluster(sf::Vector2f(10, 10));
-	cluster.setFillColor(sf::Color::Red);
-	window.setFramerateLimit(30);
-	bool processed = false;
+	sf::Clock clock;
+	pixel.setFillColor(sf::Color::Blue);
+	int imageIndex = 0;
+	bool done = false;
+	bool wait = false;
+	bool b = false;
+	sf::Time time;
+	Image img;
 
 	while (window.isOpen()) {
-
 		sf::Event event;
+
 		while (window.pollEvent(event)) {
 
 			if (event.type == sf::Event::Closed) {
@@ -195,144 +246,56 @@ int main() {
 			}
 		}
 
-		window.clear(sf::Color::White);
-
-		for (int y = 0; y < imageHeight; y++) {
-			for (int x = 0; x < imageWidth; x++) {
-				int value = blue[(y * imageWidth) + x];
-				if (value > 0) {
-					pixel.setFillColor(sf::Color(0, 0, value));
-					pixel.setPosition(x, y);
-					window.draw(pixel);
-				}
+		if (wait) {
+			if (clock.getElapsedTime().asSeconds() > 5) {
+				wait = false;
+				clock.restart();
 			}
 		}
-		
-		if (!processed) {
-			processed = true;
-			coords = findClusters(blue, tolerance, imageWidth, imageHeight);
-			std::cout << "Found " << coords.size() << " coords." << std::endl;
-		}
 
-		for (int i = 0; i < coords.size(); i++) {
-			int x = coords[i].x;
-			int y = coords[i].y;
-			cluster.setPosition(sf::Vector2f(x, y));
-			window.draw(cluster);
-		}
+		window.clear(sf::Color::White);
 
-		//	// start cluster logic
+		//if (!done) {
+		//	if (!b) {
+		//		img = getImage(names[imageIndex]);
+		//		window.setSize(sf::Vector2u(img.getWidth(), img.getHeight()));
+		//		b = true;
+		//	}
 
-		//	std::vector<Coord> checked;
-		//	Coord c;
-		//	int count = 0;
-
-		//	// use a while loop to make a recursive path finder which keeps going until there is nowhere else to go
-		//	for (int i = 0; i < coords.size(); i++) {
-
-		//		break;
-
-		//		for (int j = 0; j < coords.size(); j++) {
-
-		//			if (i == j) {
-		//				continue;
-		//			}
-
-		//			bool found = false;
-		//			for (int k = 0; k < checked.size(); k++) {
-		//				if (checked[k].x == coords[i].x || checked[k].y == coords[i].y) {
-		//					found = true;
-		//				}
-		//				if (checked[k].x == coords[j].x || checked[k].y == coords[j].y) {
-		//					found = true;
-		//				}
-		//			}
-
-		//			if (found) {
-		//				continue;
-		//			}
-
-		//			// right left
-		//			if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y) { // right
-		//				count += 1;
-		//				c.x = coords[j].x + scanSize;
-		//				c.y = coords[j].y;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-		//			if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y) { // left
-		//				count += 1;
-		//				c.x = coords[j].x - scanSize;
-		//				c.y = coords[j].y;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-
-		//			// up down
-		//			if (coords[i].x == coords[j].x && coords[i].y == coords[j].y + scanSize) { // down
-		//				count += 1;
-		//				c.x = coords[j].x;
-		//				c.y = coords[j].y + scanSize;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-		//			if (coords[i].x == coords[j].x && coords[i].y == coords[j].y - scanSize) { // up
-		//				count += 1;
-		//				c.x = coords[j].x;
-		//				c.y = coords[j].y - scanSize;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-
-		//			// diagonals
-		//			if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y + scanSize) { // bottom right
-		//				count += 1;
-		//				c.x = coords[j].x + scanSize;
-		//				c.y = coords[j].y + scanSize;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-		//			if (coords[i].x == coords[j].x + scanSize && coords[i].y == coords[j].y - scanSize) { // top right
-		//				count += 1;
-		//				c.x = coords[j].x + scanSize;
-		//				c.y = coords[j].y - scanSize;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-		//			if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y + scanSize) { // bottom left
-		//				count += 1;
-		//				c.x = coords[j].x - scanSize;
-		//				c.y = coords[j].y + scanSize;
-		//				checked.push_back(c);
-		//				continue;
-		//			}
-		//			if (coords[i].x == coords[j].x - scanSize && coords[i].y == coords[j].y - scanSize) { // top left
-		//				count += 1;
-		//				c.x = coords[j].x - scanSize;
-		//				c.y = coords[j].y - scanSize;
-		//				checked.push_back(c);
-		//				continue;
+		//	for (int y = 0; y < img.getHeight(); y++) {
+		//		for (int x = 0; x < img.getWidth(); x++) {
+		//			int val = img.getBlue()[(y * img.getWidth()) + x];
+		//			if (val > 0) {
+		//				pixel.setPosition(sf::Vector2f(x, y));
+		//				window.draw(pixel);
 		//			}
 		//		}
 		//	}
 
-		//	std::cout << "Found " << count << " clusters." << std::endl;
-
-		//	
+		coords = findClusters(img.getBlue(), img.getWidth() / 20, tolerance, img.getWidth(), img.getHeight());
+		//for (int i = 0; i < coords.size(); i++) {
+		//pixel.setPosition(sf::Vector2f(coords[i].x, coords[i].y));
+		//		//window.draw(pixel);
+		//	//}
+		std::cout << "Image " << imageIndex + 1 << " - Found " << coords.size() << " coords." << std::endl;
 		//}
 
-		//// end cluster logic
-
-		
-
-		//text.setString(std::to_string(clusters[i].value));
-		//text.setPosition(x, y);
-		//window.draw(text);
-
-
 		window.display();
-		
+
+		if (imageIndex < names.size() - 1) {
+			imageIndex += 1;
+		}
+		else {
+			done = true;
+		}
+
+		//if (!wait) {
+			//wait = true;
+			//clock.restart();
+		//}
 	}
+
+	system("pause");
 
 	return 0;
 }
