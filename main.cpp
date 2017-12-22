@@ -1,6 +1,6 @@
 #include <iostream>
-#include <filesystem>
 #include <SFML\Graphics.hpp>
+#include <string>
 #include <Windows.h>
 #include "constants.h"
 #include "tiffio.h"
@@ -50,8 +50,19 @@ std::string convertLSMToTIFF(std::string filename) {
 
 std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 {
+
+	std::string newPath;
+	for (int i = 0; i < folder.length(); i++) {
+		if (folder[i] != (char)"\\") {
+			newPath += folder[i];
+		}
+		else {
+			newPath += "/";
+		}
+	}
+
 	std::vector<std::string> names;
-	std::string search_path = folder + "\\*.lsm";
+	std::string search_path = newPath + "\\*";
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(search_path.c_str(), &fd);
 	if (hFind != INVALID_HANDLE_VALUE) {
@@ -59,7 +70,12 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 			// read all (real) files in current folder
 			// , delete '!' read other 2 default folder . and ..
 			//if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-			names.push_back(fd.cFileName);
+			//std::cout << fd.cFileName << std::endl;
+			std::string name(fd.cFileName);
+			if (std::size_t(name.find(std::string(".lsm")) != std::string::npos)) {
+				names.push_back(fd.cFileName);
+			}
+			
 			//}
 		} while (FindNextFile(hFind, &fd));
 		FindClose(hFind);
@@ -128,7 +144,7 @@ int main() {
 	std::vector<std::string> names;
 
 	std::cout << "Path to source directory: ";
-	std::cin >> path;
+	std::getline(std::cin, path);
 	names = get_all_files_names_within_folder(path);
 	for (int i = 0; i < names.size(); i++) {
 		std::cout << names[i] << std::endl;
