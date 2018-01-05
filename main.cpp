@@ -2,8 +2,11 @@
 #include <SFML\Graphics.hpp>
 #include <string>
 #include <Windows.h>
+#include <shlobj.h>  
 #include "constants.h"
 #include "tiffio.h"
+
+// ToDo: Improve cluster scanning, save results to a file (database? csv? xml?)
 
 struct Coord {
 	int x;
@@ -37,7 +40,7 @@ class Image {
 private:
 	uint32 _height;
 	uint32 _width;
-	std::vector<int> _red;
+	std::vector<int> _red; // one-dimensional for no reason whatsoever
 	std::vector<int> _green;
 	std::vector<int> _blue;
 public:
@@ -127,10 +130,33 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 	return names;
 }
 
+// scan a region of the image and return true if density of pixels is greater than the threshold
+bool scan(std::vector<int> pixels, int scanSize, int width, int height, int x, int y, int threshold) {
+	int v;
+	int sum = 0;
+	int count = 0;
+
+	for (int j = y; j < y + scanSize; j++) {
+		for (int k = x; k < x + scanSize; k++) {
+			v = pixels[(j * width) + k];
+			sum += v;
+			count += 1;
+		}
+	}
+
+	if (count > 0 && sum / count > threshold) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 // scans the whole image for clusters and stores them in the coords vector
 std::vector<Coord> findClusters(std::vector<int> pixels, int scanSize, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
-	int v;
+	//int v;
+	Coord coord;
 	int sum = 0;
 	int pixelCount = width * height;
 	int count = 0;
@@ -143,25 +169,13 @@ std::vector<Coord> findClusters(std::vector<int> pixels, int scanSize, double to
 		}
 	}
 
-	int threshold = (sum / count) * tolerance;  // average pixel value multiplied by the inverse of the tolerance
+	int threshold = (sum / count) * tolerance;  // average pixel value multiplied by the tolerance
 
-	for (int y = 0; y < height - scanSize; y += scanSize) {
+	for (int y = 0; y < height - scanSize; y += scanSize / 2) {
 
-		for (int x = 0; x < width - scanSize; x += scanSize) {
-			sum = 0;
-			count = 0;
+		for (int x = 0; x < width - scanSize; x += scanSize / 2) {
 
-			for (int j = y; j < y + scanSize; j++) {
-
-				for (int k = x; k < x + scanSize; k++) {
-					v = pixels[(j * width) + k];
-					sum += v;
-					count += 1;
-				}
-			}
-
-			if (count > 0 && sum / count > threshold) {
-				Coord coord;
+			if (scan(pixels, scanSize, width, height, x, y, threshold)) {
 				coord.x = x;
 				coord.y = y;
 				coords.push_back(coord);
@@ -215,25 +229,47 @@ Image getImage(std::string path) {
 	return img;
 }
 
+std::string BrowseFolder()
+{
+	char path[MAX_PATH];
+	BROWSEINFO bi = { 0 };
+	bi.lpszTitle = ("Select Source Directory");
+	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+
+	if (pidl != 0)
+	{
+		// get the name of the folder and put it in path
+		SHGetPathFromIDList(pidl, path);
+		return std::string(path);
+	}
+	else {
+		return std::string();
+	}
+
+	
+}
+
 int main() {
 	std::vector<Coord> coords;
 	std::string path;
 	std::vector<std::string> names;
 
-	std::cout << "Path to source directory: ";
-	std::getline(std::cin, path);
+	path = BrowseFolder();
+
+	if (path.empty()) {
+		return -1;
+	}
+
+	std::cout << path << std::endl;
 	names = get_all_files_names_within_folder(path);
 	std::cout << "Images to Process: " << names.size() << std::endl;
 
-	sf::RenderWindow window(sf::VideoMode(1, 1), "Application");
-	sf::RectangleShape pixel(sf::Vector2f(1, 1));
-	sf::Clock clock;
+	sf::RenderWindow window(sf::VideoMode(800, 600), "Cell Counter");
+	sf::RectangleShape pixel(sf::Vector2f(5, 5));
+	window.setFramerateLimit(60);
 	pixel.setFillColor(sf::Color::Blue);
-	int imageIndex = 0;
+	int imageIndex = 0; // int image_index = 0;
 	bool done = false;
-	bool wait = false;
-	bool b = false;
-	sf::Time time;
 	Image img;
 
 	while (window.isOpen()) {
@@ -246,56 +282,54 @@ int main() {
 			}
 		}
 
-		if (wait) {
-			if (clock.getElapsedTime().asSeconds() > 5) {
-				wait = false;
-				clock.restart();
-			}
-		}
+		// help me D:
+
+		img = getImage(names[imageIndex]); 
+
+		std::cout << names[imageIndex] << std::endl;
+
+		window.setSize(sf::Vector2u(img.getWidth(), img.getHeight()));
+		coords = findClusters(img.getBlue(), img.getWidth() / 50, tolerance, img.getWidth(), img.getHeight());
+
+		std::cout << "Found coords." << std::endl;
 
 		window.clear(sf::Color::White);
+		
+		//for (int y = 0; y < img.getHeight(); y++) { // draw the tiff image
+		//	for (int x = 0; x < img.getWidth(); x++) {
+		//		int val = img.getBlue()[(y * img.getWidth()) + x];
 
-		//if (!done) {
-		//	if (!b) {
-		//		img = getImage(names[imageIndex]);
-		//		window.setSize(sf::Vector2u(img.getWidth(), img.getHeight()));
-		//		b = true;
-		//	}
-
-		//	for (int y = 0; y < img.getHeight(); y++) {
-		//		for (int x = 0; x < img.getWidth(); x++) {
-		//			int val = img.getBlue()[(y * img.getWidth()) + x];
-		//			if (val > 0) {
-		//				pixel.setPosition(sf::Vector2f(x, y));
-		//				window.draw(pixel);
-		//			}
+		//		if (val > 0) {
+		//			pixel.setPosition(sf::Vector2f(x, y));
+		//			window.draw(pixel);
 		//		}
 		//	}
-
-		coords = findClusters(img.getBlue(), img.getWidth() / 20, tolerance, img.getWidth(), img.getHeight());
-		//for (int i = 0; i < coords.size(); i++) {
-		//pixel.setPosition(sf::Vector2f(coords[i].x, coords[i].y));
-		//		//window.draw(pixel);
-		//	//}
-		std::cout << "Image " << imageIndex + 1 << " - Found " << coords.size() << " coords." << std::endl;
 		//}
+
+		//std::cout << "Drawn image." << std::endl;
+
+		for (int i = 0; i < coords.size(); i++) { // draw the points
+			pixel.setPosition(sf::Vector2f(coords[i].x, coords[i].y));
+			window.draw(pixel);
+		}
+
+		std::cout << "Image " << imageIndex + 1 << " - Found " << coords.size() << " coords." << std::endl;
 
 		window.display();
 
-		if (imageIndex < names.size() - 1) {
-			imageIndex += 1;
-		}
-		else {
-			done = true;
-		}
+		done = true;
 
-		//if (!wait) {
-			//wait = true;
-			//clock.restart();
+		//if (imageIndex < names.size() - 1) {
+		//	//imageIndex += 1;
+		//	done = true;
 		//}
+		//else {
+		//	done = true;
+		//}
+
 	}
 
-	system("pause");
+	//system("pause");
 
 	return 0;
 }
