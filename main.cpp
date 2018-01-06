@@ -246,7 +246,6 @@ std::string BrowseFolder()
 		return std::string();
 	}
 
-	
 }
 
 int main() {
@@ -264,11 +263,11 @@ int main() {
 	names = get_all_files_names_within_folder(path);
 	std::cout << "Images to Process: " << names.size() << std::endl;
 
-	sf::RenderWindow window(sf::VideoMode(800, 600), "Cell Counter");
-	sf::RectangleShape pixel(sf::Vector2f(5, 5));
+	sf::RenderWindow window(sf::VideoMode(800, 800), "Cell Counter");
+	sf::RectangleShape pixel(sf::Vector2f(2, 2));
 	window.setFramerateLimit(60);
 	pixel.setFillColor(sf::Color::Blue);
-	int imageIndex = 0; // int image_index = 0;
+	int imageIndex = 0; 
 	bool done = false;
 	Image img;
 
@@ -282,31 +281,16 @@ int main() {
 			}
 		}
 
-		// help me D:
-
 		img = getImage(names[imageIndex]); 
 
-		std::cout << names[imageIndex] << std::endl;
+		//std::cout << names[imageIndex] << std::endl;
 
-		window.setSize(sf::Vector2u(img.getWidth(), img.getHeight()));
-		coords = findClusters(img.getBlue(), img.getWidth() / 50, tolerance, img.getWidth(), img.getHeight());
+		window.setSize(sf::Vector2u((int)img.getWidth(), (int)img.getHeight()));
+		coords = findClusters(img.getBlue(), img.getWidth() / scanSizeDiv, tolerance, img.getWidth(), img.getHeight());
 
-		std::cout << "Found coords." << std::endl;
+		//std::cout << "Found coords." << std::endl;
 
 		window.clear(sf::Color::White);
-		
-		//for (int y = 0; y < img.getHeight(); y++) { // draw the tiff image
-		//	for (int x = 0; x < img.getWidth(); x++) {
-		//		int val = img.getBlue()[(y * img.getWidth()) + x];
-
-		//		if (val > 0) {
-		//			pixel.setPosition(sf::Vector2f(x, y));
-		//			window.draw(pixel);
-		//		}
-		//	}
-		//}
-
-		//std::cout << "Drawn image." << std::endl;
 
 		for (int i = 0; i < coords.size(); i++) { // draw the points
 			pixel.setPosition(sf::Vector2f(coords[i].x, coords[i].y));
@@ -316,16 +300,6 @@ int main() {
 		std::cout << "Image " << imageIndex + 1 << " - Found " << coords.size() << " coords." << std::endl;
 
 		window.display();
-
-		done = true;
-
-		//if (imageIndex < names.size() - 1) {
-		//	//imageIndex += 1;
-		//	done = true;
-		//}
-		//else {
-		//	done = true;
-		//}
 
 	}
 
