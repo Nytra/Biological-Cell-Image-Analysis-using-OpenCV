@@ -152,6 +152,24 @@ bool scan(std::vector<int> pixels, int scanSize, int width, int height, int x, i
 	}
 }
 
+std::vector<Coord> checkAdjacentCells(std::vector<Coord> coords, Coord c) {
+	// make an array of every x coord
+	// make an array of every y coord
+
+	std::vector<int> xs;
+	std::vector<int> ys;
+	for (int i = 0; i < coords.size(); i++) {
+		xs.push_back(coords[i].x);
+		ys.push_back(coords[i].y);
+	}
+	
+
+
+
+
+	// check every adjacent cell (c.x, c.y) and then return the positive ones
+}
+
 // scans the whole image for clusters and stores them in the coords vector
 std::vector<Coord> findClusters(std::vector<int> pixels, int scanSize, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
@@ -181,6 +199,14 @@ std::vector<Coord> findClusters(std::vector<int> pixels, int scanSize, double to
 				coords.push_back(coord);
 			}
 		}
+	}
+
+	// use recursion to detect adjacent cells and use that to determine the number of clusters
+	// check up down left right for each cell
+	// maybe have a root cell?
+
+	for (int i = 0; i < coords.size(); i++) {
+
 	}
 
 	return coords;
