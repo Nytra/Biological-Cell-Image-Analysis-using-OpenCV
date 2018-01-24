@@ -194,9 +194,9 @@ std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tole
 		threshold = 0;
 	}
 
-	for (int y = 0; y < height - scanSize; y += scanSize / 2) {
+	for (int y = 0; y < height - scanSize; y += scanSize) {
 
-		for (int x = 0; x < width - scanSize; x += scanSize / 2) {
+		for (int x = 0; x < width - scanSize; x += scanSize) {
 
 			if (scanPixels(pixels, scanSize, width, height, x, y, threshold)) {
 				coord.x = x;
@@ -211,16 +211,18 @@ std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tole
 
 std::vector<Coord> findClusters(std::vector<Coord> coords, int scanSize, int width, int height, double threshold) {
 	std::vector<Coord> clusters;
-	for (int y = 0; y < height - scanSize; y += scanSize / 2) {
 
-		for (int x = 0; x < width - scanSize; x += scanSize / 2) {
-
-			if (scanRegion(coords, scanSize, width, height, x, y, threshold)) {
-				clusters.push_back(Coord(x, y));
-				//std::cout << clusters.size() << std::endl;
+	for (int i = 0; i < coords.size(); i++) {
+		for (int j = 0; j < coords.size(); j++) {
+			if (coords[i].x + scanSize == coords[j].x &&
+				coords[i].y == coords[j].y) {
+					//
 			}
 		}
 	}
+
+	// scan for clusters of coords (inaccurate)
+	// scan for adjacent coords (accurate)
 
 	return clusters;
 }
@@ -326,7 +328,7 @@ int main() {
 		//std::cout << names[imageIndex] << std::endl;
 
 		window.setSize(sf::Vector2u((int)img.getWidth(), (int)img.getHeight()));
-		coords = findPixels(img.getBlue(), img.getWidth() / scanSizeDiv, tolerance, img.getWidth(), img.getHeight());
+		coords = findPixels(img.getBlue(), (int)(img.getWidth() / scanSizeDiv), tolerance, img.getWidth(), img.getHeight());
 		std::cout << "Found " << coords.size() << " coords." << std::endl;
 
 		//std::cout << "Found coords." << std::endl;
@@ -338,9 +340,9 @@ int main() {
 			window.draw(pixel);
 		}
 
-		clusters = findClusters(coords, img.getWidth() / (scanSizeDiv * 10), img.getWidth(), img.getHeight(), 0.5);
+		//clusters = findClusters(coords, img.getWidth() / (scanSizeDiv * 10), img.getWidth(), img.getHeight(), 0.5);
 
-		std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
+		//std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
 
 		window.display();
 
