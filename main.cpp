@@ -57,7 +57,7 @@ public:
 	}
 };
 
-inline bool ends_with(std::string const & value, std::string const & ending)
+bool ends_with(std::string const & value, std::string const & ending)
 {
 	if (ending.size() > value.size()) return false;
 	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
@@ -113,28 +113,6 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 	return names;
 }
 
-// scan a region of the image and return true if density of pixels is greater than the threshold
-bool scanPixels(std::vector<int> pixels, int scanSize, int width, int height, int x, int y, int threshold) {
-	int v;
-	int sum = 0;
-	int count = 0;
-
-	for (int j = y; j < y + scanSize; j++) {
-		for (int k = x; k < x + scanSize; k++) {
-			v = pixels[(j * width) + k];
-			sum += v;
-			count += 1;
-		}
-	}
-
-	if (count > 0 && sum / count > threshold) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
 bool checkCoord(std::vector<Coord> coords, int x, int y) {
 	Coord c;
 	c.x = x;
@@ -148,35 +126,15 @@ bool checkCoord(std::vector<Coord> coords, int x, int y) {
 	return false;
 }
 
-bool scanRegion(std::vector<Coord> coords, int scanSize, int width, int height, int x, int y, double threshold) {
-	int count = 0;
-
-	for (int j = y; j < y + scanSize; j++) {
-		for (int k = x; k < x + scanSize; k++) {
-			if (checkCoord(coords, k, j)) {
-				count += 1;
-			}
-		}
-	}
-
-	if (count > 0) {
-		std::cout << count  << "/" << (scanSize * scanSize) << std::endl;
-	}
-
-	if (count / (scanSize * scanSize) > threshold) {
-		return true;
-	}
-	return false;
-}
-
-// scans the whole image for clusters and stores them in the coords vector
 std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
-	//int v;
-	Coord coord;
-	int sum = 0;
-	int pixelCount = width * height;
-	int count = 0;
+	int sum, count, pixelCount, threshold, value;
+
+	// get average pixel value and multiply it by the tolerance
+
+	sum = 0;
+	count = 0;
+	pixelCount = width * height;
 
 	for (int i = 0; i < pixelCount; i++) {
 
@@ -186,45 +144,40 @@ std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tole
 		}
 	}
 
-	int threshold;
 	if (count > 0) {
-		threshold = (sum / count) * tolerance;  // average pixel value multiplied by the tolerance
+		threshold = (sum / count) * tolerance;  
 	}
 	else {
 		threshold = 0;
 	}
 
+	std::cout << threshold << std::endl;
+
+	// begin main scan
+
 	for (int y = 0; y < height - scanSize; y += scanSize) {
 
 		for (int x = 0; x < width - scanSize; x += scanSize) {
 
-			if (scanPixels(pixels, scanSize, width, height, x, y, threshold)) {
-				coord.x = x;
-				coord.y = y;
-				coords.push_back(coord);
+			sum = 0;
+			count = 0;
+			value = 0;
+
+			for (int j = y; j < y + scanSize; j++) {
+				for (int k = x; k < x + scanSize; k++) {
+					value = pixels[(j * width) + k];
+					sum += value;
+					count += 1;
+				}
+			}
+
+			if (count > 0 && sum / count > threshold) {
+				coords.push_back(Coord(x, y));
 			}
 		}
 	}
 
 	return coords;
-}
-
-std::vector<Coord> findClusters(std::vector<Coord> coords, int scanSize, int width, int height, double threshold) {
-	std::vector<Coord> clusters;
-
-	for (int i = 0; i < coords.size(); i++) {
-		for (int j = 0; j < coords.size(); j++) {
-			if (coords[i].x + scanSize == coords[j].x &&
-				coords[i].y == coords[j].y) {
-					//
-			}
-		}
-	}
-
-	// scan for clusters of coords (inaccurate)
-	// scan for adjacent coords (accurate)
-
-	return clusters;
 }
 
 Image getImage(std::string path) {
@@ -328,10 +281,8 @@ int main() {
 		//std::cout << names[imageIndex] << std::endl;
 
 		window.setSize(sf::Vector2u((int)img.getWidth(), (int)img.getHeight()));
-		coords = findPixels(img.getBlue(), (int)(img.getWidth() / scanSizeDiv), tolerance, img.getWidth(), img.getHeight());
+		coords = findPixels(img.getBlue(), (int)(img.getWidth() / scanSizeDiv), 1, img.getWidth(), img.getHeight());
 		std::cout << "Found " << coords.size() << " coords." << std::endl;
-
-		//std::cout << "Found coords." << std::endl;
 
 		window.clear(sf::Color::White);
 
@@ -340,7 +291,12 @@ int main() {
 			window.draw(pixel);
 		}
 
-		//clusters = findClusters(coords, img.getWidth() / (scanSizeDiv * 10), img.getWidth(), img.getHeight(), 0.5);
+		int x, y;
+		for (int i = 0; i < coords.size(); i++) {
+			x = coords[i].x;
+			y = coords[i].y;
+			// check around this coord in multiples of the scanSize
+		}
 
 		//std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
 
