@@ -114,12 +114,9 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder)
 }
 
 bool checkCoord(std::vector<Coord> coords, int x, int y) {
-	Coord c;
-	c.x = x;
-	c.y = y;
 	for (int i = 0; i < coords.size(); i++) {
-		if (coords[i].x == c.x &&
-			coords[i].y == c.y) {
+		if (coords[i].x == x &&
+			coords[i].y == y) {
 			return true;
 		}
 	}
@@ -151,7 +148,7 @@ std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tole
 		threshold = 0;
 	}
 
-	std::cout << threshold << std::endl;
+	std::cout << "Intensity Threshold: " << threshold << std::endl;
 
 	// begin main scan
 
@@ -281,7 +278,7 @@ int main() {
 		//std::cout << names[imageIndex] << std::endl;
 
 		window.setSize(sf::Vector2u((int)img.getWidth(), (int)img.getHeight()));
-		coords = findPixels(img.getBlue(), (int)(img.getWidth() / scanSizeDiv), 1, img.getWidth(), img.getHeight());
+		coords = findPixels(img.getBlue(), img.getWidth() / scanSizeDiv, 1, img.getWidth(), img.getHeight());
 		std::cout << "Found " << coords.size() << " coords." << std::endl;
 
 		window.clear(sf::Color::White);
@@ -291,16 +288,37 @@ int main() {
 			window.draw(pixel);
 		}
 
-		int x, y;
+		int x, y, radius, count, scanSize, dist, dy, dx;
+		scanSize = img.getWidth() / scanSizeDiv;
+		radius = 2;
+		count = 0;
 		for (int i = 0; i < coords.size(); i++) {
 			x = coords[i].x;
 			y = coords[i].y;
+			//count = 0;
+			for (int j = 0; j < coords.size(); j++) {
+				if (i != j) {
+					dy = std::abs(y - coords[j].y);
+					dx = std::abs(x - coords[j].x);
+					dist = std::sqrt((dx * dx) + (dy * dy)) / scanSize;
+					//std::cout << dist << std::endl;
+					if (dist == 1 && coords[j].x != 0) {
+						count += 1;
+						coords[j].x = 0;
+					}
+				}
+			}
+			
 			// check around this coord in multiples of the scanSize
 		}
-
+		if (count > 0) {
+			std::cout << count << std::endl;
+		}
 		//std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
 
 		window.display();
+
+		system("pause"); 
 
 	}
 
