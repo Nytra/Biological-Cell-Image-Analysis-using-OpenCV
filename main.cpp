@@ -161,7 +161,7 @@ std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tole
 		threshold = 0;
 	}
 
-	std::cout << "Intensity Threshold: " << threshold << std::endl;
+	//std::cout << "Average Intensity: " << threshold << std::endl;
 
 	// begin main scan
 
@@ -252,7 +252,6 @@ std::string BrowseFolder()
 
 }
 
-// stay in this function until all coords in a cluster a found
 std::vector<int> getAdjacentCoords(std::vector<Coord> &coords, int x, int y, int radius) {
 	std::vector<int> found;
 	//int radius = 1;
@@ -278,9 +277,9 @@ std::vector<std::vector<int>> findClusters(std::vector<Coord> coords) {
 	std::vector<int> checked;
 	//bool flag;
 	//int x, y;
-	int radius = 2;
+	int radius = 3;
 	int width = (radius * 2) + 1;
-	double density = 0.22;
+	double density = 0.1;
 	int bad;
 
 	for (int i = 0; i < coords.size(); i++) {
@@ -297,7 +296,7 @@ std::vector<std::vector<int>> findClusters(std::vector<Coord> coords) {
 				continue;
 			}
 			
-			std::cout << "found cluster of size " << found.size() << std::endl;
+			//std::cout << "found cluster of size " << found.size() << std::endl;
 			clusters.push_back(found);
 
 			for (int index : found) {
@@ -328,7 +327,7 @@ int main() {
 	std::cout << "Images to Process: " << names.size() << std::endl;
 
 	sf::RenderWindow window(sf::VideoMode(800, 800), "Cell Counter");
-	sf::RectangleShape pixel(sf::Vector2f(2, 2));
+	sf::RectangleShape pixel(sf::Vector2f(5, 5));
 	window.setFramerateLimit(60);
 	pixel.setFillColor(sf::Color::Blue);
 	int imageIndex = 0; 
@@ -345,7 +344,7 @@ int main() {
 			}
 		}
 
-		std::cout << names[imageIndex] << std::endl;
+		//std::cout << names[imageIndex] << std::endl;
 
 		img = getImage(names[imageIndex]); 
 
@@ -353,7 +352,7 @@ int main() {
 
 		window.setSize(sf::Vector2u((int)img.getWidth(), (int)img.getHeight()));
 		coords = findPixels(img.getBlue(), img.getWidth() / scanSizeDiv, 1, img.getWidth(), img.getHeight());
-		std::cout << "Found " << coords.size() << " coords." << std::endl;
+		//std::cout << "Found " << coords.size() << " coords." << std::endl;
 
 		window.clear(sf::Color::White);
 
@@ -372,23 +371,25 @@ int main() {
 		clusters = findClusters(coords);
 		count = clusters.size();
 
-		if (count > 0) {
-			std::cout << count << std::endl;
-		}
+		//if (count > 0) {
+			//std::cout << count << std::endl;
+		//}
 
 		// END CLUSTER DETECTION
 
-		//std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
+		std::cout << "Image " << imageIndex + 1 << " - Found " << count << " clusters." << std::endl;
 
 		window.display();
 
-		system("pause"); 
+		//system("pause"); 
 
-		imageIndex += 1;
+		if (imageIndex < names.size() - 1) {
+			imageIndex += 1;
+		}
 
 	}
 
-	//system("pause");
+	system("pause");
 
 	return 0;
 }
