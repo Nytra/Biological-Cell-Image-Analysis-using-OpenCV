@@ -6,17 +6,30 @@
 #include "constants.h"
 #include "tiffio.h"
 
+int scanSize;
+
 // ToDo: Improve cluster scanning, save results to a file (database? csv? xml?)
 
 struct Coord {
 	int x;
 	int y;
-	Coord() {}
+	bool active;
+	Coord() {
+		active = true;
+	}
 	Coord(int _x, int _y) {
 		x = _x;
 		y = _y;
+		active = true;
 	}
-	
+	bool operator== (Coord c) {
+		if (x == c.x && y == c.y) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 };
 
 class Image {
@@ -239,6 +252,65 @@ std::string BrowseFolder()
 
 }
 
+// stay in this function until all coords in a cluster a found
+std::vector<int> getAdjacentCoords(std::vector<Coord> &coords, int x, int y, int radius) {
+	std::vector<int> found;
+	//int radius = 1;
+
+	for (int i = 0; i < coords.size(); i++) {
+		for (int yOffset = scanSize * -radius; yOffset < scanSize * radius; yOffset += scanSize) {
+			for (int xOffset = scanSize * -radius; xOffset < scanSize * radius; xOffset += scanSize) {
+				if (coords[i].active && xOffset != 0 && yOffset != 0 && x + xOffset == coords[i].x && y + yOffset == coords[i].y) {
+					found.push_back(i);
+					//coords[i].active = false;
+				}
+			}
+		}
+	}
+
+	return found;
+}
+
+std::vector<std::vector<int>> findClusters(std::vector<Coord> coords) {
+	std::vector<std::vector<int>> clusters;
+	//std::vector<int> cluster;
+	std::vector<int> found;
+	std::vector<int> checked;
+	//bool flag;
+	//int x, y;
+	int radius = 2;
+	int width = (radius * 2) + 1;
+	double density = 0.22;
+	int bad;
+
+	for (int i = 0; i < coords.size(); i++) {
+		
+		found = getAdjacentCoords(coords, coords[i].x, coords[i].y, radius);
+		if (found.size() >= (width * width) * density) {
+			bad = 0;
+			for (int index : found) {
+				if (std::find(checked.begin(), checked.end(), index) != checked.end()) {
+					bad += 1;
+				}
+			}
+			if (bad > 0) {
+				continue;
+			}
+			
+			std::cout << "found cluster of size " << found.size() << std::endl;
+			clusters.push_back(found);
+
+			for (int index : found) {
+				checked.push_back(index);
+			}
+		}
+
+		
+	}
+
+	return clusters;
+}
+
 int main() {
 	std::vector<Coord> coords;
 	std::vector<Coord> clusters;
@@ -273,6 +345,8 @@ int main() {
 			}
 		}
 
+		std::cout << names[imageIndex] << std::endl;
+
 		img = getImage(names[imageIndex]); 
 
 		//std::cout << names[imageIndex] << std::endl;
@@ -288,37 +362,29 @@ int main() {
 			window.draw(pixel);
 		}
 
-		int x, y, radius, count, scanSize, dist, dy, dx;
+		// BEGIN CLUSTER DETECTION
+
 		scanSize = img.getWidth() / scanSizeDiv;
-		radius = 2;
-		count = 0;
-		for (int i = 0; i < coords.size(); i++) {
-			x = coords[i].x;
-			y = coords[i].y;
-			//count = 0;
-			for (int j = 0; j < coords.size(); j++) {
-				if (i != j) {
-					dy = std::abs(y - coords[j].y);
-					dx = std::abs(x - coords[j].x);
-					dist = std::sqrt((dx * dx) + (dy * dy)) / scanSize;
-					//std::cout << dist << std::endl;
-					if (dist == 1 && coords[j].x != 0) {
-						count += 1;
-						coords[j].x = 0;
-					}
-				}
-			}
-			
-			// check around this coord in multiples of the scanSize
-		}
+		int count = 0;
+		int minSize = 3;
+		std::vector<std::vector<int>> clusters;
+
+		clusters = findClusters(coords);
+		count = clusters.size();
+
 		if (count > 0) {
 			std::cout << count << std::endl;
 		}
+
+		// END CLUSTER DETECTION
+
 		//std::cout << "Image " << imageIndex + 1 << " - Found " << clusters.size() << " clusters." << std::endl;
 
 		window.display();
 
 		system("pause"); 
+
+		imageIndex += 1;
 
 	}
 

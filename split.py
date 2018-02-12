@@ -11,10 +11,10 @@ if not os.path.exists(path + "\\output"):
 filenames = list(name for name in os.listdir(path) if name.endswith(".lsm"))
 for filename in filenames:
 	img = IJ.openImage(path + "\\" + filename)
-	IJ.saveAsTiff(img, path + "\\output\\" + filename[:-4])
-	#channels = ChannelSplitter.split(img)
-	#for i, c in enumerate(channels):
-		#IJ.saveAsTiff(c, path + "\\output\\" + filename[:-4] + "_channel" + str(i))
+	#IJ.saveAsTiff(img, path + "\\output\\" + filename[:-4])
+	channels = ChannelSplitter.split(img)
+	for i, c in enumerate(channels):
+		IJ.saveAsTiff(c, path + "\\output\\" + filename[:-4] + "_channel" + str(i))
 
 IJ.beep()
 gd = GenericDialog("Success!")
