@@ -278,15 +278,17 @@ std::vector<Coord> findClusters(std::vector<Coord> coords) {
 	std::vector<int> checked;
 	//bool flag;
 	//int x, y;
-	int radius = 3;
+	int radius = scanRadius;
 	int width = (radius * 2) + 1;
-	double density = 0.1;
+	int area = width * width;
+	int threshold = width;
+	//double density = 0.1;
 	int count;
 
 	for (int i = 0; i < coords.size(); i++) {
 		
 		adjacent = getAdjacentCoords(coords, coords[i].x, coords[i].y, radius);
-		if (adjacent.size() >= (width * width) * density) {
+		if (adjacent.size() >= threshold) {
 			count = 0;
 			for (int index : adjacent) {
 				if (std::find(checked.begin(), checked.end(), index) != checked.end()) {
@@ -381,7 +383,7 @@ int main() {
 			//int i = c[0];
 			//Coord c = coords[i];
 			box.setSize(sf::Vector2f(scanSize * 3, scanSize * 3));
-			box.setPosition(c.x - (box.getSize().x / 2), c.y - (box.getSize().y / 2));
+			box.setPosition(c.x - (box.getSize().x / 2), c.y - (box.getSize().x / 2));
 			window.draw(box);
 		}
 
