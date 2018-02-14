@@ -3,10 +3,12 @@
 #include <string>
 #include <Windows.h>
 #include <shlobj.h>  
+#include <cmath>
 #include "constants.h"
 #include "tiffio.h"
 
 int scanSize;
+sf::RenderWindow window(sf::VideoMode(800, 800), "Cell Counter");
 
 // ToDo: Improve cluster scanning, save results to a file (database? csv? xml?)
 
@@ -68,7 +70,7 @@ public:
 	std::vector<int> getBlue() {
 		return _blue;
 	}
-};
+} img;
 
 bool ends_with(std::string const & value, std::string const & ending)
 {
@@ -278,14 +280,19 @@ std::vector<Coord> findClusters(std::vector<Coord> coords) {
 	std::vector<int> checked;
 	//bool flag;
 	//int x, y;
-	int radius = scanRadius;
+	// radius should scale with scanSizeDiv
+	int radius = std::sqrt(scanSizeDiv) / 4;
+	std::cout << "Radius: " << radius << std::endl;
 	int width = (radius * 2) + 1;
 	int area = width * width;
-	int threshold = width;
+	int threshold = area / 2;
 	//double density = 0.1;
 	int count;
 
 	for (int i = 0; i < coords.size(); i++) {
+
+		//std::cout << i + 1 << "/" << coords.size() << std::endl;
+		//window.setTitle(std::string(i))
 		
 		adjacent = getAdjacentCoords(coords, coords[i].x, coords[i].y, radius);
 		if (adjacent.size() >= threshold) {
@@ -295,16 +302,20 @@ std::vector<Coord> findClusters(std::vector<Coord> coords) {
 					count += 1;
 				}
 			}
+			for (int index : adjacent) {
+				checked.push_back(index);
+			}
 			if (count > 0) {
+				
 				continue;
 			}
 			
 			//std::cout << "found cluster of size " << found.size() << std::endl;
 			clusters.push_back(coords[i]);
 
-			for (int index : adjacent) {
+			/*for (int index : adjacent) {
 				checked.push_back(index);
-			}
+			}*/
 		}
 
 		
@@ -329,8 +340,8 @@ int main() {
 	names = get_all_files_names_within_folder(path);
 	std::cout << "Images to Process: " << names.size() << std::endl;
 
-	sf::RenderWindow window(sf::VideoMode(800, 800), "Cell Counter");
-	sf::RectangleShape pixel(sf::Vector2f(5, 5));
+	
+	sf::RectangleShape pixel(sf::Vector2f(2, 2));
 	sf::RectangleShape box(sf::Vector2f(10, 10));
 	window.setFramerateLimit(60);
 	pixel.setFillColor(sf::Color::Blue);
@@ -339,7 +350,7 @@ int main() {
 	box.setFillColor(sf::Color::Transparent);
 	int imageIndex = 0; 
 	bool done = false;
-	Image img;
+	//Image img;
 
 	while (window.isOpen()) {
 		sf::Event event;
@@ -389,6 +400,7 @@ int main() {
 
 		// END CLUSTER DETECTION
 
+		std::cout << names[imageIndex] << std::endl;
 		std::cout << "Image " << imageIndex + 1 << " - Found " << count << " clusters." << std::endl;
 
 		window.display();
