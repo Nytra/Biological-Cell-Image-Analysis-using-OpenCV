@@ -15,7 +15,7 @@ sf::RenderWindow window(sf::VideoMode(800, 800), "Cell Counter");
 struct Coord {
 	int x;
 	int y;
-	bool active;
+	bool active; // unused
 	Coord() {
 		active = true;
 	}
@@ -38,7 +38,7 @@ class Image {
 private:
 	uint32 _height;
 	uint32 _width;
-	std::vector<int> _red; // one-dimensional for no reason whatsoever
+	std::vector<int> _red; 
 	std::vector<int> _green;
 	std::vector<int> _blue;
 public:
@@ -138,6 +138,7 @@ bool checkCoord(std::vector<Coord> coords, int x, int y) {
 	return false;
 }
 
+// find pixels that have intensities greater than the average
 std::vector<Coord> findPixels(std::vector<int> pixels, int scanSize, double tolerance, int width, int height) {
 	std::vector<Coord> coords;
 	int sum, count, pixelCount, threshold, value;
@@ -244,7 +245,7 @@ std::string BrowseFolder()
 
 	if (pidl != 0)
 	{
-		// get the name of the folder and put it in path
+		// get the name of the folder and put it in path buffer
 		SHGetPathFromIDList(pidl, path);
 		return std::string(path);
 	}
@@ -254,7 +255,7 @@ std::string BrowseFolder()
 
 }
 
-std::vector<int> getAdjacentCoords(std::vector<Coord> &coords, int x, int y, int radius) {
+std::vector<int> getAdjacentCoordIndexes(std::vector<Coord> &coords, int x, int y, int radius) {
 	std::vector<int> found;
 	//int radius = 1;
 
@@ -272,6 +273,18 @@ std::vector<int> getAdjacentCoords(std::vector<Coord> &coords, int x, int y, int
 	return found;
 }
 
+std::vector<std::vector<Coord>> findClusters2(std::vector<Coord> coords) {
+	int conseq = 0;
+	int prevConseq = 0;
+	for (int y = 0; y < img.getHeight(); y++) {
+		for (int x = 0; x < img.getWidth(); x++) {
+			if (std::find(coords.begin(), coords.end(), Coord(x, y)) != coords.end()) {
+				conseq += 1;
+			}
+		}
+	}
+}
+
 std::vector<Coord> findClusters(std::vector<Coord> coords) {
 	std::vector<Coord> clusters;
 	//std::vector<int> cluster;
@@ -281,20 +294,24 @@ std::vector<Coord> findClusters(std::vector<Coord> coords) {
 	//bool flag;
 	//int x, y;
 	// radius should scale with scanSizeDiv
-	int radius = std::sqrt(scanSizeDiv) / 4;
+	int radius = std::sqrt(scanSizeDiv) / 4; // 4
 	std::cout << "Radius: " << radius << std::endl;
 	int width = (radius * 2) + 1;
-	int area = width * width;
+	int area = (width * width) - 1;
 	int threshold = area / 2;
 	//double density = 0.1;
 	int count;
 
 	for (int i = 0; i < coords.size(); i++) {
 
-		//std::cout << i + 1 << "/" << coords.size() << std::endl;
+		std::cout << i + 1 << "/" << coords.size() << std::endl;
 		//window.setTitle(std::string(i))
+
+		if (std::find(checked.begin(), checked.end(), i) != checked.end()) {
+			continue;
+		}
 		
-		adjacent = getAdjacentCoords(coords, coords[i].x, coords[i].y, radius);
+		adjacent = getAdjacentCoordIndexes(coords, coords[i].x, coords[i].y, radius);
 		if (adjacent.size() >= threshold) {
 			count = 0;
 			for (int index : adjacent) {
@@ -321,6 +338,7 @@ std::vector<Coord> findClusters(std::vector<Coord> coords) {
 		
 	}
 
+	checked.clear();
 	return clusters;
 }
 
@@ -333,7 +351,7 @@ int main() {
 	path = BrowseFolder();
 
 	if (path.empty()) {
-		return -1;
+		return 1;
 	}
 
 	std::cout << path << std::endl;
@@ -393,7 +411,7 @@ int main() {
 		for (Coord c : clusters) {
 			//int i = c[0];
 			//Coord c = coords[i];
-			box.setSize(sf::Vector2f(scanSize * 3, scanSize * 3));
+			box.setSize(sf::Vector2f(((std::sqrt(scanSizeDiv) / 4) * 2) - 1, ((std::sqrt(scanSizeDiv) / 4) * 2) - 1));
 			box.setPosition(c.x - (box.getSize().x / 2), c.y - (box.getSize().x / 2));
 			window.draw(box);
 		}
