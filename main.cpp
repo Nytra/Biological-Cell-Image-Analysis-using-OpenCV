@@ -1,5 +1,5 @@
 #include <iostream>
-#include <SFML\Graphics.hpp>
+//#include <SFML\Graphics.hpp>
 #include <string>
 #include <Windows.h>
 #include <shlobj.h>  
@@ -9,6 +9,8 @@
 #include "opencv2\highgui.hpp"
 #include "opencv2\imgproc.hpp"
 #include "constants.h"
+
+//int dilation_size, erosion_size;
 
 // ToDo: Improve cluster scanning, save results to a file (database? csv? xml?)
 
@@ -86,11 +88,30 @@ std::string BrowseFolder()
 
 }
 
+void erode(cv::Mat img, int size) {
+	cv::Mat element = cv::getStructuringElement(
+		cv::MORPH_ELLIPSE,
+		cv::Size(2 * size + 1, 2 * size + 1),
+		cv::Point(size, size)
+	);
+	cv::erode(img, img, element);
+}
+
+void dilate(cv::Mat img, int size) {
+	cv::Mat element = cv::getStructuringElement(
+		cv::MORPH_ELLIPSE,
+		cv::Size(2 * size + 1, 2 * size + 1),
+		cv::Point(size, size)
+	);
+	cv::dilate(img, img, element);
+}
+
 int main() {
-	std::string path;
+	std::string path = "C:\\Users\\samue\\Desktop\\Data\\PIC to be converted in TIF\\2017.06.02 ReNd28 treatments";
 	std::vector<std::string> names;
 
-	path = BrowseFolder();
+	//path = BrowseFolder();
+	//path = std::string();
 
 	if (path.empty()) {
 		return 1;
@@ -102,17 +123,19 @@ int main() {
 
 	cv::Mat img, img_gray;
 	std::vector<cv::Vec3f> circles;
-	int dilation_size = 2;
+	int dilation_size = 5;
+	int erosion_size = 1;
 
 	for (std::string filename : names) {
 		img = cv::imread(filename, cv::IMREAD_COLOR);
 		cv::cvtColor(img, img_gray, CV_BGR2GRAY);
-		cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, 
-													cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1),
-													cv::Point(dilation_size, dilation_size));
-		cv::dilate(img_gray, img_gray, element);
-		//cv::HoughCircles(img_gray, circles, CV_HOUGH_GRADIENT, 1, img_gray.rows / 8, 20, 50, 0, 0);
-
+		//dilate(img_gray, dilation_size);
+		erode(img_gray, erosion_size);
+		erode(img, erosion_size);
+		dilate(img_gray, dilation_size);
+		dilate(img, dilation_size);
+		cv::HoughCircles(img_gray, circles, CV_HOUGH_GRADIENT, 1, img_gray.rows / 15, 12, 12, 10, 15);
+		cv::line(img, cv::Point(0, 10), cv::Point(img_gray.rows / 15, 10), cv::Scalar(0, 255, 0));
 		std::cout << "Found " << circles.size() << " circles." << std::endl;
 		for (int i = 0; i < circles.size(); i++) {
 			cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
