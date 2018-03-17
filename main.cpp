@@ -20,7 +20,7 @@ bool ends_with(std::string const & value, std::string const & ending)
 	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-std::string getexepath() {
+std::string get_exe_path() {
 	char result[MAX_PATH];
 	GetModuleFileName(NULL, result, MAX_PATH);
 	std::string::size_type pos = std::string(result).find_last_of("\\/");
@@ -29,7 +29,7 @@ std::string getexepath() {
 
 std::string convertLSMToTIFF(std::string filename) {
 	std::string oname = filename + ".tif";
-	std::string path = getexepath();
+	std::string path = get_exe_path();
 	std::string command = path + "\\imgcnv.exe -i \"" + filename + "\" -o \"" + oname + "\" -t TIFF -display";
 	system(command.c_str());
 	return oname;
@@ -37,18 +37,18 @@ std::string convertLSMToTIFF(std::string filename) {
 
 std::vector<std::string> get_all_files_names_within_folder(std::string folder) {
 
-	std::string newPath;
+	std::string new_path;
 	for (int i = 0; i < folder.length(); i++) {
 		if (folder[i] != (char)"\\") {
-			newPath += folder[i];
+			new_path += folder[i];
 		}
 		else {
-			newPath += "/";
+			new_path += "/";
 		}
 	}
 
 	std::vector<std::string> names;
-	std::string search_path = newPath + "\\*";
+	std::string search_path = new_path + "\\*";
 	WIN32_FIND_DATA fd;
 	HANDLE hFind = FindFirstFile(search_path.c_str(), &fd);
 	if (hFind != INVALID_HANDLE_VALUE) {
@@ -59,7 +59,7 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder) {
 			//std::cout << fd.cFileName << std::endl;
 			std::string name(fd.cFileName);
 			if (ends_with(name, ".lsm")) {
-				names.push_back(newPath + "\\" + fd.cFileName);
+				names.push_back(new_path + "\\" + fd.cFileName);
 			}
 			
 			//}
@@ -69,7 +69,7 @@ std::vector<std::string> get_all_files_names_within_folder(std::string folder) {
 	return names;
 }
 
-std::string BrowseFolder()
+std::string browseFolder()
 {
 	char path[MAX_PATH];
 	BROWSEINFO bi = { 0 };
@@ -107,11 +107,11 @@ void dilate(cv::Mat img, int size) {
 }
 
 int main() {
-	std::string path = "C:\\Users\\samue\\Desktop\\Data\\PIC to be converted in TIF\\2017.06.02 ReNd28 treatments";
+	std::string path;
 	std::vector<std::string> names;
 
-	//path = BrowseFolder();
-	//path = std::string();
+	//path = browseFolder();
+	path = "C:\\Users\\samue\\Desktop\\Data\\PIC to be converted in TIF\\2017.06.02 ReNd28 treatments";
 
 	if (path.empty()) {
 		return 1;
@@ -124,16 +124,15 @@ int main() {
 	cv::Mat img, img_gray;
 	std::vector<cv::Vec3f> circles;
 	int dilation_size = 5;
-	int erosion_size = 1;
+	int erosion_size = 6;
 
 	for (std::string filename : names) {
 		img = cv::imread(filename, cv::IMREAD_COLOR);
 		cv::cvtColor(img, img_gray, CV_BGR2GRAY);
-		//dilate(img_gray, dilation_size);
 		erode(img_gray, erosion_size);
 		erode(img, erosion_size);
-		dilate(img_gray, dilation_size);
-		dilate(img, dilation_size);
+		//dilate(img_gray, dilation_size);
+		//dilate(img, dilation_size);
 		cv::HoughCircles(img_gray, circles, CV_HOUGH_GRADIENT, 1, img_gray.rows / 15, 12, 12, 10, 15);
 		cv::line(img, cv::Point(0, 10), cv::Point(img_gray.rows / 15, 10), cv::Scalar(0, 255, 0));
 		std::cout << "Found " << circles.size() << " circles." << std::endl;
