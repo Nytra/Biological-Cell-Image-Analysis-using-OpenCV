@@ -8,7 +8,13 @@
 #include "opencv2\opencv.hpp"
 #include "opencv2\highgui.hpp"
 #include "opencv2\imgproc.hpp"
+#include "opencv2\imgcodecs.hpp"
+#include "opencv2\features2d.hpp"
+#include "opencv2\xfeatures2d.hpp"
 #include "constants.h"
+
+using namespace cv;
+using namespace cv::xfeatures2d;
 
 //int dilation_size, erosion_size;
 
@@ -127,25 +133,29 @@ int main() {
 	int erosion_size = 6;
 
 	for (std::string filename : names) {
-		img = cv::imread(filename, cv::IMREAD_COLOR);
-		cv::cvtColor(img, img_gray, CV_BGR2GRAY);
-		erode(img_gray, erosion_size);
-		erode(img, erosion_size);
-		//dilate(img_gray, dilation_size);
-		//dilate(img, dilation_size);
-		cv::HoughCircles(img_gray, circles, CV_HOUGH_GRADIENT, 1, img_gray.rows / 15, 12, 12, 10, 15);
-		cv::line(img, cv::Point(0, 10), cv::Point(img_gray.rows / 15, 10), cv::Scalar(0, 255, 0));
-		std::cout << "Found " << circles.size() << " circles." << std::endl;
-		for (int i = 0; i < circles.size(); i++) {
-			cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-			int radius = cvRound(circles[i][2]);
-			// circle center
-			cv::circle(img, center, 3, cv::Scalar(0, 255, 0), -1, 8, 0);
-			// circle outline
-			cv::circle(img, center, radius, cv::Scalar(0, 0, 255), 3, 8, 0);
+		img_gray = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+		if (img_gray.empty()) {
+			std::cout << "Error opening image" << std::endl;
+			continue;
 		}
 
-		cv::imshow("Image", img);
+		int minHessian = 5000; 
+		int pixThresh = 30;
+		GaussianBlur(img_gray, img_gray, cv::Size(11, 11), 1);
+		threshold(img_gray, img_gray, pixThresh, 255, THRESH_BINARY);
+		erode(img_gray, 2);
+		//dilate(img_gray, 4);
+
+		Ptr<SURF> detector = SURF::create(minHessian);
+		std::vector<KeyPoint> keypoints_1;
+		detector->detect(img_gray, keypoints_1);
+		Mat img_keypoints_1;
+		drawKeypoints(img_gray, keypoints_1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+
+		std::cout << "Found " << keypoints_1.size() << " keypoints." << std::endl;
+
+		cv::imshow("Image", img_keypoints_1);
+		//cv::imshow("Spectrum Magnitude", magI);
 		cv::waitKey(0);
 	}
 
