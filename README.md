@@ -1,3 +1,3 @@
 Requires OpenCV.
 
-This is incomplete code.
+This is an incomplete prototype.
